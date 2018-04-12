@@ -1,141 +1,131 @@
 package br.pucminas.printerclient;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import br.pucminas.printerclient.PeerDiscovery.Peer;
 
 public class Driver {
-	// Writers
-	PrintWriter w1;
-	PrintWriter w2;
-	PrintWriter w3;
-
 	// For convenience in accessing channels; will contain our writers above
-	ArrayList<PrintWriter> outputStreams = new ArrayList<PrintWriter>();
+	ArrayList<PrintWriter> outputStreams;
 
 	// Readers that will be passed to a separate thread of execution each
-	BufferedReader r1;
-	BufferedReader r2;
-	BufferedReader r3;
+	List<BufferedReader> inputStreams;
 
 	int nodeNum;
 
 	// Our mutual exclusion algorithm object for this node
 	RicartAgrawala me;
 
-	int numberOfWrites;
-	int writeLimit = 5; // number of times to try CS
+	// int numberOfWrites;
+	// int writeLimit = 100; // number of times to try CS
 	int csDelay = 200; // wait delay between CS tries in ms
 
-	/** Start the driver, with a number of channels specified. **/
-	public Driver(String args[]) {
+	private ExecutorService exec;
+
+	/**
+	 * Start the driver, with a number of channels specified.
+	 * 
+	 * @throws IOException
+	 **/
+	public Driver(int nodeNum) throws IOException {
 		System.out.println("\n\n");
-		final boolean desireToHarmHumansOrThroughInactionAllowHumansToComeToHarm = false; // Just in case
 
-		nodeNum = Integer.parseInt(args[0]);
+		int port = 7000;
+		Radar radar = new Radar(port, port);
+		radar.start();
 
-		numberOfWrites = 0;
+		this.nodeNum = nodeNum;
 
-		// Set up our sockets with our peer nodes
-		try {
-			ServerSocket ss1;
-			ServerSocket ss2;
-			ServerSocket ss3;
-			Socket s1;
-			Socket s2;
-			Socket s3;
+		List<Peer> ips = new ArrayList<Peer>();
 
-			if (nodeNum == 1) {
-				// Clear the file
-				BufferedWriter clearWrite = new BufferedWriter(new FileWriter("CriticalSectionOutput.txt"));
-				clearWrite.write("\n");
-				clearWrite.close();
-
-				System.out.println("Node 1 here");
-				ss1 = new ServerSocket(4461); // ServerSocket for net02
-				ss2 = new ServerSocket(4462); // ServerSocket for net03
-				ss3 = new ServerSocket(4463); // ServerSocket for net04
-				s1 = ss1.accept();
-				s2 = ss2.accept();
-				s3 = ss3.accept();
-			} else if (nodeNum == 2) {
-				System.out.println("Node 2 here");
-				s1 = new Socket("net01.utdallas.edu", 4461); // ClientSocket for net01
-				ss2 = new ServerSocket(4462); // ServerSocket for net03
-				ss3 = new ServerSocket(4463); // ServerSocket for net04
-
-				s2 = ss2.accept();
-				s3 = ss3.accept();
-			} else if (nodeNum == 3) {
-				System.out.println("Node 3 here");
-				s1 = new Socket("net01.utdallas.edu", 4462); // ClientSocket for net01
-				s2 = new Socket("net06.utdallas.edu", 4462); // ClientSocket for net02
-				ss3 = new ServerSocket(4463); // ServerSocket for net04
-
-				s3 = ss3.accept();
-			} else {
-				System.out.println("Node 4 here");
-				s1 = new Socket("net01.utdallas.edu", 4463);
-				s2 = new Socket("net06.utdallas.edu", 4463);
-				s3 = new Socket("net03.utdallas.edu", 4463);
-			}
-
-			System.out.println("Created all sockets");
-
-			// With the sockets done, create our readers and writers
-			w1 = new PrintWriter(s1.getOutputStream(), true);
-			w2 = new PrintWriter(s2.getOutputStream(), true);
-			w3 = new PrintWriter(s3.getOutputStream(), true);
-			r1 = new BufferedReader(new InputStreamReader(s1.getInputStream()));
-			r2 = new BufferedReader(new InputStreamReader(s2.getInputStream()));
-			r3 = new BufferedReader(new InputStreamReader(s3.getInputStream()));
-
-			// Let's store our writers in a list
-			outputStreams.add(w1);
-			outputStreams.add(w2);
-			outputStreams.add(w3);
-
-			// Create the ME object with priority of 'nodeNum' and initial sequence number 0
-			me = new RicartAgrawala(nodeNum, 0, this);
-			me.w[0] = w1;
-			me.w[1] = w2;
-			me.w[2] = w3;
-
-			// And let's start some threads to read our sockets
-			Thread t1 = new Thread(new ChannelHandler(s1));
-			t1.start();
-
-			Thread t2 = new Thread(new ChannelHandler(s2));
-			t2.start();
-
-			Thread t3 = new Thread(new ChannelHandler(s3));
-			t3.start();
-
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
-
-		while (numberOfWrites < writeLimit) {
+		while (true) {
 			try {
-				System.out.println("Requesting critical section...");
-				requestCS();
-				numberOfWrites++;
-				Random num = new Random();
-				Thread.sleep(num.nextInt(500));
-				// Thread.sleep(csDelay);
+				if (!ips.equals(new ArrayList<Peer>(radar.getPeers()))) {
+					ips = new ArrayList<Peer>(radar.getPeers());
+					if (!ips.isEmpty()) {
+						initDriver(nodeNum, port + 1, ips);
+					}
+				}
+				if (!ips.isEmpty()) {
+					System.out.println("Requesting critical section...");
+					requestCS();
+					// numberOfWrites++;
+					Random num = new Random();
+					Thread.sleep(num.nextInt(500));
+					// Thread.sleep(csDelay);
+				} else {
+					System.out.print("Waiting for connection...\r");
+					Thread.sleep(1000);
+				}
 			} catch (InterruptedException e) {
 				System.out.println(e.getMessage());
 			}
 		}
 	}
 
+	private void initDriver(int nodeNum, int initialPort, List<Peer> ips) {
+		// Set up our sockets with our peer nodes
+		try {
+			List<ServerSocket> ss = new ArrayList<ServerSocket>();
+			List<Socket> s = new ArrayList<Socket>();
+			outputStreams = new ArrayList<PrintWriter>();
+			inputStreams = new ArrayList<BufferedReader>();
+			// Clear the file
+			BufferedWriter clearWrite = new BufferedWriter(new FileWriter("CriticalSectionOutput.txt"));
+			clearWrite.write("\n");
+			clearWrite.close();
+
+			System.out.println("Node " + nodeNum + " here");
+			for (int i = 0; i < nodeNum - 1; i++) {
+				s.add(new Socket(ips.get(i).getIp(), initialPort++));
+			}
+			for (int i = nodeNum - 1; i < ips.size(); i++) {
+				ss.add(new ServerSocket(initialPort++));
+			}
+			for (ServerSocket serverSocket : ss) {
+				s.add(serverSocket.accept());
+			}
+			System.out.println("Created all sockets");
+
+			// With the sockets done, create our readers and writers
+			for (Socket socket : s) {
+				outputStreams.add(new PrintWriter(socket.getOutputStream(), true));
+				inputStreams.add(new BufferedReader(new InputStreamReader(socket.getInputStream())));
+			}
+
+			// Create the ME object with priority of 'nodeNum' and initial sequence number 0
+			me = new RicartAgrawala(nodeNum, 0, ips.size(), this);
+			me.w = outputStreams;
+
+			if (exec != null) {
+				exec.shutdownNow();
+			}
+
+			exec = Executors.newFixedThreadPool(s.size());
+			for (int j = 0; j < s.size(); j++) {
+				Socket socket3 = s.get(j);
+				exec.execute(new ChannelHandler(socket3));
+			}
+
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+	}
+
 	/** Invocation of Critical Section */
-	public static boolean criticalSection(int nodeNum, int numberOfWrites) {
+	public static boolean criticalSection(int nodeNum) {
 		System.out.println("Node " + nodeNum + " entered critical section");
 		try {
 			BufferedWriter criticalSection = new BufferedWriter(new FileWriter("CriticalSectionOutput.txt", true));
@@ -164,7 +154,7 @@ public class Driver {
 		me.invocation();
 
 		// After invocation returns, we can safely call CS
-		criticalSection(nodeNum, numberOfWrites);
+		criticalSection(nodeNum);
 
 		// Once we are done with CS, release CS
 		me.releaseCS();
@@ -235,13 +225,13 @@ public class Driver {
 				}
 
 			} catch (Exception ex) {
-				ex.printStackTrace();
+				try {
+					sock.close();
+				} catch (IOException e) {
+				}
+				return;
 			}
 		}
-	}
-
-	public static void main(String[] args) {
-		new Driver(args);
 	}
 
 }

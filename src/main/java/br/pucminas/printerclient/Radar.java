@@ -1,15 +1,14 @@
 package br.pucminas.printerclient;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.HashSet;
+import java.util.Set;
 
 import br.pucminas.printerclient.PeerDiscovery.Peer;
 
-public class Radar extends TimerTask {
+public class Radar extends Thread {
 
-	private List<Peer> peers;
+	private Set<Peer> peers = new HashSet<Peer>();
 	PeerDiscovery mp;
 	int group;
 	int port;
@@ -29,19 +28,21 @@ public class Radar extends TimerTask {
 	@Override
 	public void run() {
 		try {
-			setPeers(mp.getPeers(100, (byte) 0));
-			System.out.println(getPeers());
-			new Timer().schedule(new Radar(group, port, mp), 1000);
-		} catch (IOException e) {
+			while (true) {
+				setPeers(mp.getPeers(100));
+				// System.out.println(getPeers());
+				Thread.sleep(1000);
+			}
+		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public List<Peer> getPeers() {
+	public Set<Peer> getPeers() {
 		return peers;
 	}
 
-	public void setPeers(List<Peer> peers) {
+	public void setPeers(Set<Peer> peers) {
 		this.peers = peers;
 	}
 

@@ -1,15 +1,15 @@
 package br.pucminas.printerclient;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
 import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Performs broadcast and multicast peer detection. How well this works depends
@@ -18,10 +18,6 @@ import java.util.List;
  * @author ryanm
  */
 public class PeerDiscovery {
-	private static final byte QUERY_PACKET = 80;
-
-	private static final byte RESPONSE_PACKET = 81;
-
 	/**
 	 * The group identifier. Determines the set of peers that are able to discover
 	 * each other
@@ -44,7 +40,7 @@ public class PeerDiscovery {
 
 	private boolean shouldStop = false;
 
-	private List<Peer> responseList = null;
+	private Set<Peer> responseList = new HashSet<Peer>();
 
 	/**
 	 * Used to detect and ignore this peers response to it's own query. When we send
@@ -52,13 +48,24 @@ public class PeerDiscovery {
 	 * response, if this matches the source, we know that we're talking to ourselves
 	 * and we can ignore the response.
 	 */
-	private InetAddress lastResponseDestination = null;
+	private Set<InetAddress> localAddresses = new HashSet<InetAddress>();
 
 	/**
 	 * Redefine this to be notified of exceptions on the listen thread. Default
 	 * behaviour is to print to stdout. Can be left as null for no-op
 	 */
 	public ExceptionHandler rxExceptionHandler = new ExceptionHandler();
+
+	{
+		Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+		while (networkInterfaces.hasMoreElements()) {
+			NetworkInterface networkInterface = networkInterfaces.nextElement();
+			Enumeration<InetAddress> enumInetAddresses = networkInterface.getInetAddresses();
+			while (enumInetAddresses.hasMoreElements()) {
+				localAddresses.add(enumInetAddresses.nextElement());
+			}
+		}
+	}
 
 	private Thread bcastListen = new Thread(PeerDiscovery.class.getSimpleName() + " broadcast listen thread") {
 		@Override
@@ -69,27 +76,15 @@ public class PeerDiscovery {
 
 				while (!shouldStop) {
 					try {
-						buffy[0] = 0;
+						buffy[0] = (byte) port;
 
 						bcastSocket.receive(rx);
+						DatagramPacket tx = new DatagramPacket(buffy, buffy.length, rx.getAddress(), port);
 
-						int recData = decode(buffy, 1);
-
-						if (buffy[0] == QUERY_PACKET && recData == group) {
-							byte[] data = new byte[5];
-							data[0] = RESPONSE_PACKET;
-							encode(peerData, data, 1);
-
-							DatagramPacket tx = new DatagramPacket(data, data.length, rx.getAddress(), port);
-
-							lastResponseDestination = rx.getAddress();
-
-							bcastSocket.send(tx);
-						} else if (buffy[0] == RESPONSE_PACKET) {
-							if (responseList != null && !rx.getAddress().equals(lastResponseDestination)) {
-								synchronized (responseList) {
-									responseList.add(new Peer(rx.getAddress(), recData));
-								}
+						bcastSocket.send(tx);
+						if (!localAddresses.contains(rx.getAddress())) {
+							synchronized (responseList) {
+								responseList.add(new Peer(rx.getAddress(), buffy[0]));
 							}
 						}
 					} catch (SocketException se) {
@@ -157,13 +152,14 @@ public class PeerDiscovery {
 	 * @throws IOException
 	 *             If something goes wrong when sending the query packet
 	 */
-	public List<Peer> getPeers(int timeout, byte peerType) throws IOException {
-		responseList = new ArrayList<Peer>();
+	public Set<Peer> getPeers(int timeout) throws IOException {
 
 		// send query byte, appended with the group id
 		byte[] data = new byte[5];
-		data[0] = QUERY_PACKET;
-		encode(group, data, 1);
+		data[0] = (byte) port;
+		// encode(group, data, 1);
+
+		responseList = new HashSet<Peer>();
 
 		DatagramPacket tx = new DatagramPacket(data, data.length, broadcastAddress);
 
@@ -175,11 +171,7 @@ public class PeerDiscovery {
 		} catch (InterruptedException e) {
 		}
 
-		List<Peer> peers = responseList;
-
-		responseList = null;
-
-		return peers;
+		return responseList;
 	}
 
 	/**
@@ -191,21 +183,43 @@ public class PeerDiscovery {
 		/**
 		 * The ip of the peer
 		 */
-		public final InetAddress ip;
+		private final InetAddress ip;
 
 		/**
 		 * The data of the peer
 		 */
-		public final int data;
+		private final int port;
 
-		private Peer(InetAddress ip, int data) {
+		private Peer(InetAddress ip, int port) {
 			this.ip = ip;
-			this.data = data;
+			this.port = port;
 		}
 
 		@Override
 		public String toString() {
-			return ip.getHostAddress() + " " + data;
+			return getIp().getHostAddress() + " " + getPort();
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			Peer other = (Peer) obj;
+			if (this.getIp().equals(other.getIp())) {
+				return true;
+			}
+			return false;
+		}
+
+		@Override
+		public int hashCode() {
+			return getIp().hashCode();
+		}
+
+		public InetAddress getIp() {
+			return ip;
+		}
+
+		public int getPort() {
+			return port;
 		}
 	}
 
@@ -224,62 +238,5 @@ public class PeerDiscovery {
 		public void handle(Exception e) {
 			e.printStackTrace();
 		}
-	}
-
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		try {
-			int group = 6969;
-			int port = 6969;
-
-			PeerDiscovery mp = new PeerDiscovery(group, port);
-
-			boolean stop = false;
-
-			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-
-			while (!stop) {
-				System.out.println("enter \"q\" to quit, or anything else to query peers");
-				String s = br.readLine();
-
-				if (s.equals("q")) {
-					System.out.print("Closing down...");
-					mp.disconnect();
-					System.out.println(" done");
-					stop = true;
-				} else {
-					System.out.println("Querying");
-
-					List<Peer> peers = mp.getPeers(100, (byte) 0);
-
-					System.out.println(peers.size() + " peers found");
-					for (Peer p : peers) {
-						System.out.println("\t" + p);
-					}
-				}
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	private static int decode(byte[] b, int index) {
-		int i = 0;
-
-		i |= b[index] << 24;
-		i |= b[index + 1] << 16;
-		i |= b[index + 2] << 8;
-		i |= b[index + 3];
-
-		return i;
-	}
-
-	private static void encode(int i, byte[] b, int index) {
-		b[index] = (byte) (i >> 24 & 0xff);
-		b[index + 1] = (byte) (i >> 16 & 0xff);
-		b[index + 2] = (byte) (i >> 8 & 0xff);
-		b[index + 3] = (byte) (i & 0xff);
 	}
 }

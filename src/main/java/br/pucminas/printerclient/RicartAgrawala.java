@@ -1,6 +1,8 @@
 package br.pucminas.printerclient;
 
-import java.io.*;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RicartAgrawala {
 
@@ -12,23 +14,24 @@ public class RicartAgrawala {
 	public Driver driverModule;
 
 	// Holds our writers to use
-	public PrintWriter[] w;
+	public List<PrintWriter> w;
 
 	// Hard coded to 3 right now, for 3 other nodes in network
-	public int channelCount = 3;
+	public int channelCount;
 
 	public boolean[] replyDeferred;
 
-	public RicartAgrawala(int nodeNum, int seqNum, Driver driverModule) {
+	public RicartAgrawala(int nodeNum, int seqNum, int channelCount, Driver driverModule) {
 		bRequestingCS = false;
 
+		this.channelCount = channelCount;
 		outstandingReplies = channelCount;
 
 		highestSeqNum = 0;
 		this.seqNum = seqNum;
 		this.driverModule = driverModule;
 
-		w = new PrintWriter[channelCount];
+		w = new ArrayList<PrintWriter>();
 
 		// Node number is also used for priority (low node # == higher priority in
 		// RicartAgrawala scheme)
@@ -49,7 +52,7 @@ public class RicartAgrawala {
 
 		for (int i = 1; i <= channelCount + 1; i++) {
 			if (i != nodeNum) {
-				requestTo(seqNum, nodeNum, i);
+				requestTo(seqNum, nodeNum, 1);
 			}
 		}
 
@@ -120,18 +123,18 @@ public class RicartAgrawala {
 	public void replyTo(int k) {
 		System.out.println("Sending REPLY to node " + k);
 		if (k > nodeNum) {
-			w[k - 2].println("REPLY," + k);
+			w.get(k - 2).println("REPLY," + k);
 		} else {
-			w[k - 1].println("REPLY," + k);
+			w.get(k - 1).println("REPLY," + k);
 		}
 	}
 
 	public void requestTo(int seqNum, int nodeNum, int i) {
 		System.out.println("Sending REQUEST to node " + (((i))));
 		if (i > nodeNum) {
-			w[i - 2].println("REQUEST," + seqNum + "," + nodeNum);
+			w.get(i - 2).println("REQUEST," + seqNum + "," + nodeNum);
 		} else {
-			w[i - 1].println("REQUEST," + seqNum + "," + nodeNum);
+			w.get(i - 1).println("REQUEST," + seqNum + "," + nodeNum);
 		}
 	}
 
