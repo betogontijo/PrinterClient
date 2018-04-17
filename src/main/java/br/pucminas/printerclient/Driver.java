@@ -5,6 +5,8 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -39,13 +41,15 @@ public class Driver {
 	 * 
 	 * @throws IOException
 	 **/
+	static OutputStream outputStream = null;
+	
 	public Driver(int nodeNum) throws IOException {
 		System.out.println("\n\n");
 
 		int port = 7000;
 		Radar radar = new Radar(port, port);
 		radar.start();
-
+		outputStream = new Socket("10.2.10.10", 9000).getOutputStream();
 		this.nodeNum = nodeNum;
 
 		List<Peer> ips = new ArrayList<Peer>();
@@ -128,7 +132,7 @@ public class Driver {
 	public static boolean criticalSection(int nodeNum) {
 		System.out.println("Node " + nodeNum + " entered critical section");
 		try {
-			BufferedWriter criticalSection = new BufferedWriter(new FileWriter("CriticalSectionOutput.txt", true));
+			BufferedWriter criticalSection = new BufferedWriter(new OutputStreamWriter(outputStream));
 
 			criticalSection.write(nodeNum + " started critical section access");
 			criticalSection.newLine();
