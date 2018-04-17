@@ -5,7 +5,6 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
@@ -41,7 +40,7 @@ public class Driver {
 	 * 
 	 * @throws IOException
 	 **/
-	static OutputStream outputStream = null;
+	static BufferedWriter criticalSection = null;
 	
 	public Driver(int nodeNum) throws IOException {
 		System.out.println("\n\n");
@@ -49,7 +48,7 @@ public class Driver {
 		int port = 7000;
 		Radar radar = new Radar(port, port);
 		radar.start();
-		outputStream = new Socket("10.2.10.10", 9000).getOutputStream();
+		criticalSection = new BufferedWriter(new OutputStreamWriter(new Socket("10.2.10.10", 9000).getOutputStream()));
 		this.nodeNum = nodeNum;
 
 		List<Peer> ips = new ArrayList<Peer>();
@@ -132,18 +131,17 @@ public class Driver {
 	public static boolean criticalSection(int nodeNum) {
 		System.out.println("Node " + nodeNum + " entered critical section");
 		try {
-			BufferedWriter criticalSection = new BufferedWriter(new OutputStreamWriter(outputStream));
 
 			criticalSection.write(nodeNum + " started critical section access");
 			criticalSection.newLine();
-			Thread.sleep(100);
+			Thread.sleep(1000);
 			// criticalSection.write(nodeName + " has now accessed it's critical section " +
 			// numberOfWrites + " times.");
 			criticalSection.write(nodeNum + " ended critical section access");
 			criticalSection.newLine();
 			criticalSection.newLine();
 			criticalSection.flush(); // flush stream
-			criticalSection.close(); // close write
+//			criticalSection.close(); // close write
 		} catch (Exception e) {
 			System.out.println("Oh No! Something Has Gone Horribly Wrong");
 		}
