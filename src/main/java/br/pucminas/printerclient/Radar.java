@@ -1,7 +1,9 @@
 package br.pucminas.printerclient;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 import br.pucminas.printerclient.PeerDiscovery.Peer;
@@ -46,9 +48,14 @@ public class Radar extends Thread {
 		this.peers = peers;
 	}
 
-	public static void main(String[] args) throws IOException {
-		Radar radar = new Radar(6969, 6969);
-		radar.run();
+	public String getLocalAddress() {
+		Iterator<InetAddress> iterator = this.mp.getLocalAddresses().iterator();
+		while (iterator.hasNext()) {
+			InetAddress next = iterator.next();
+			if (!next.getHostAddress().startsWith("169")) {
+				return next.getHostAddress();
+			}
+		}
+		return null;
 	}
-
 }

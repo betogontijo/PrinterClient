@@ -9,7 +9,9 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
@@ -41,24 +43,36 @@ public class Driver {
 	 * @throws IOException
 	 **/
 	static BufferedWriter criticalSection = null;
-	
-	public Driver(int nodeNum) throws IOException {
-		System.out.println("\n\n");
 
+	@SuppressWarnings("resource")
+	public Driver() throws IOException {
 		int port = 7000;
 		Radar radar = new Radar(port, port);
 		radar.start();
-		criticalSection = new BufferedWriter(new OutputStreamWriter(new Socket("10.2.10.10", 9000).getOutputStream()));
-		this.nodeNum = nodeNum;
+		String localAddress = radar.getLocalAddress();
+		Socket socket = new Socket("192.168.15.2", 9000);
+		criticalSection = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
-		List<Peer> ips = new ArrayList<Peer>();
+		List<Peer> ips = new ArrayList<Peer>(radar.getPeers());
 
 		while (true) {
 			try {
 				if (!ips.equals(new ArrayList<Peer>(radar.getPeers()))) {
 					ips = new ArrayList<Peer>(radar.getPeers());
 					if (!ips.isEmpty()) {
-						initDriver(nodeNum, port + 1, ips);
+						ArrayList<String> cluster = new ArrayList<String>();
+						cluster.add(localAddress);
+						for (Peer peer : ips) {
+							cluster.add(peer.getIp().getHostAddress());
+						}
+						cluster.sort(new Comparator<String>() {
+							@Override
+							public int compare(String o1, String o2) {
+								return o1.compareTo(o2);
+							}
+						});
+						this.nodeNum = cluster.indexOf(localAddress) + 1;
+						initDriver(port + 1, ips);
 					}
 				}
 				if (!ips.isEmpty()) {
@@ -68,17 +82,17 @@ public class Driver {
 					Random num = new Random();
 					Thread.sleep(num.nextInt(500));
 					// Thread.sleep(csDelay);
-				} else {
+			} else {
 					System.out.print("Waiting for connection...\r");
-					Thread.sleep(1000);
 				}
+				Thread.sleep(500);
 			} catch (InterruptedException e) {
-				System.out.println(e.getMessage());
+				e.printStackTrace();
 			}
 		}
 	}
 
-	private void initDriver(int nodeNum, int initialPort, List<Peer> ips) {
+	private void initDriver(int initialPort, List<Peer> ips) {
 		// Set up our sockets with our peer nodes
 		try {
 			List<ServerSocket> ss = new ArrayList<ServerSocket>();
@@ -92,7 +106,12 @@ public class Driver {
 
 			System.out.println("Node " + nodeNum + " here");
 			for (int i = 0; i < nodeNum - 1; i++) {
-				s.add(new Socket(ips.get(i).getIp(), initialPort++));
+				int j = initialPort++;
+				Socket socket = new Socket(ips.get(i).getIp(), j);
+				while (!socket.isConnected()) {
+					socket.connect(socket.getRemoteSocketAddress());
+				}
+				s.add(socket);
 			}
 			for (int i = nodeNum - 1; i < ips.size(); i++) {
 				ss.add(new ServerSocket(initialPort++));
@@ -129,21 +148,13 @@ public class Driver {
 
 	/** Invocation of Critical Section */
 	public static boolean criticalSection(int nodeNum) {
-		System.out.println("Node " + nodeNum + " entered critical section");
 		try {
 
-			criticalSection.write(nodeNum + " started critical section access");
-			criticalSection.newLine();
-			Thread.sleep(1000);
-			// criticalSection.write(nodeName + " has now accessed it's critical section " +
-			// numberOfWrites + " times.");
-			criticalSection.write(nodeNum + " ended critical section access");
-			criticalSection.newLine();
-			criticalSection.newLine();
+			criticalSection.write(nodeNum + " holds critical section access");
 			criticalSection.flush(); // flush stream
-//			criticalSection.close(); // close write
+			Thread.sleep(1000);
 		} catch (Exception e) {
-			System.out.println("Oh No! Something Has Gone Horribly Wrong");
+			e.printStackTrace();
 		}
 		return true;
 	}
@@ -207,7 +218,7 @@ public class Driver {
 				// As long as this reader is open, will take action the moment a message
 				// arrives.
 				while ((message = reader.readLine()) != null) {
-					System.out.println("Node " + nodeNum + " received message: " + message);
+					System.out.println(message);
 
 					// Tokenize our message to determine RicartAgrawala step
 

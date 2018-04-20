@@ -3,6 +3,7 @@ package br.pucminas.printerclient;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
@@ -62,7 +63,10 @@ public class PeerDiscovery {
 			NetworkInterface networkInterface = networkInterfaces.nextElement();
 			Enumeration<InetAddress> enumInetAddresses = networkInterface.getInetAddresses();
 			while (enumInetAddresses.hasMoreElements()) {
-				localAddresses.add(enumInetAddresses.nextElement());
+				InetAddress address = enumInetAddresses.nextElement();
+				if (address instanceof Inet4Address && !address.getHostAddress().equals("127.0.0.1")) {
+					localAddresses.add(address);
+				}
 			}
 		}
 	}
@@ -172,6 +176,10 @@ public class PeerDiscovery {
 		}
 
 		return responseList;
+	}
+
+	public Set<InetAddress> getLocalAddresses() {
+		return localAddresses;
 	}
 
 	/**
