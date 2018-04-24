@@ -9,7 +9,6 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -50,9 +49,7 @@ public class Driver {
 		Radar radar = new Radar(port, port);
 		radar.start();
 		String localAddress = radar.getLocalAddress();
-		Socket socket = new Socket("192.168.15.2", 9000);
-		criticalSection = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-
+		new Printer(9000).start();
 		List<Peer> ips = new ArrayList<Peer>(radar.getPeers());
 
 		while (true) {
@@ -71,6 +68,8 @@ public class Driver {
 								return o1.compareTo(o2);
 							}
 						});
+						criticalSection = new BufferedWriter(
+								new OutputStreamWriter(new Socket(cluster.get(0), 9000).getOutputStream()));
 						this.nodeNum = cluster.indexOf(localAddress) + 1;
 						initDriver(port + 1, ips);
 					}
@@ -82,7 +81,7 @@ public class Driver {
 					Random num = new Random();
 					Thread.sleep(num.nextInt(500));
 					// Thread.sleep(csDelay);
-			} else {
+				} else {
 					System.out.print("Waiting for connection...\r");
 				}
 				Thread.sleep(500);

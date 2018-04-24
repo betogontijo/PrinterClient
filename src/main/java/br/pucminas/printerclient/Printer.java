@@ -7,9 +7,16 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class Printer {
+	
+	int port;
+	
+	public Printer(int port) {
+		this.port = port;
+	}
 
-	public static void main(String[] args) throws IOException {
-		ServerSocket ss = new ServerSocket(9000);
+	@SuppressWarnings("resource")
+	public void start() throws IOException {
+		ServerSocket ss = new ServerSocket(port);
 		while (true) {
 			final Socket sock = ss.accept();
 			new Thread() {
