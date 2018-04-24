@@ -52,7 +52,7 @@ public class Radar extends Thread {
 		Iterator<InetAddress> iterator = this.mp.getLocalAddresses().iterator();
 		while (iterator.hasNext()) {
 			InetAddress next = iterator.next();
-			if (!next.getHostAddress().startsWith("169")) {
+			if (!next.getHostAddress().startsWith("169") && !next.getHostAddress().startsWith("192")) {
 				return next.getHostAddress();
 			}
 		}

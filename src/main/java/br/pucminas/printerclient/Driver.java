@@ -48,7 +48,7 @@ public class Driver {
 		Radar radar = new Radar(port, port);
 		radar.start();
 		String localAddress = radar.getLocalAddress();
-		// new Printer(9000).start();
+		new Printer(9000).start();
 		List<Peer> ips = new ArrayList<Peer>(radar.getPeers());
 
 		while (true) {
