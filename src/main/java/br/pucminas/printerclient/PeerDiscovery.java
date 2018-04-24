@@ -119,9 +119,10 @@ public class PeerDiscovery {
 		this.group = group;
 		this.port = port;
 
-		broadcastAddress = new InetSocketAddress("255.255.255.255", port);
-		bcastSocket = new DatagramSocket(broadcastAddress);
+		bcastSocket = new DatagramSocket(port);
 		bcastSocket.setBroadcast(true);
+		
+		broadcastAddress = new InetSocketAddress("255.255.255.255", port);
 
 		bcastListen.setDaemon(true);
 		bcastListen.start();

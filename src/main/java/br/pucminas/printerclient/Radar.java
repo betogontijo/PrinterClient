@@ -31,11 +31,9 @@ public class Radar extends Thread {
 	public void run() {
 		try {
 			while (true) {
-				setPeers(mp.getPeers(100));
-				// System.out.println(getPeers());
-				Thread.sleep(1000);
+				setPeers(mp.getPeers(1000));
 			}
-		} catch (IOException | InterruptedException e) {
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
