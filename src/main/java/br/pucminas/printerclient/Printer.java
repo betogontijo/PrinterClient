@@ -33,8 +33,6 @@ public class Printer extends Thread {
 								System.out.println(message);
 							}
 						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
 						}
 					}
 
@@ -44,6 +42,10 @@ public class Printer extends Thread {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
+	}
+
+	public static void main(String[] args) {
+		new Printer(9000).start();
 	}
 
 }

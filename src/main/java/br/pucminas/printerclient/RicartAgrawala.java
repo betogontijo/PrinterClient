@@ -8,8 +8,6 @@ public class RicartAgrawala {
 
 	public boolean bRequestingCS;
 	public int outstandingReplies;
-	public int highestSeqNum;
-	public int seqNum;
 	public int nodeNum;
 	public Driver driverModule;
 
@@ -21,14 +19,12 @@ public class RicartAgrawala {
 
 	public boolean[] replyDeferred;
 
-	public RicartAgrawala(int nodeNum, int seqNum, int channelCount, Driver driverModule) {
+	public RicartAgrawala(int nodeNum, int channelCount, Driver driverModule) {
 		bRequestingCS = false;
 
 		this.channelCount = channelCount;
 		outstandingReplies = channelCount;
 
-		highestSeqNum = 0;
-		this.seqNum = seqNum;
 		this.driverModule = driverModule;
 
 		w = new ArrayList<PrintWriter>();
@@ -46,13 +42,12 @@ public class RicartAgrawala {
 	public boolean invocation() {
 
 		bRequestingCS = true;
-		seqNum = highestSeqNum + 1;
 
 		outstandingReplies = channelCount;
 
 		for (int i = 1; i <= channelCount + 1; i++) {
 			if (i != nodeNum) {
-				requestTo(seqNum, nodeNum, 1);
+				requestTo(nodeNum, 1);
 			}
 		}
 
@@ -95,12 +90,11 @@ public class RicartAgrawala {
 	 *            The incoming message's node number
 	 * 
 	 */
-	public void receiveRequest(int j, int k) {
+	public void receiveRequest(int k) {
 		System.out.println("Received request from node " + k);
 		boolean bDefer = false;
 
-		highestSeqNum = Math.max(highestSeqNum, j);
-		bDefer = bRequestingCS && ((j > seqNum) || (j == seqNum && k > nodeNum));
+		bDefer = bRequestingCS && (k > nodeNum);
 		if (bDefer) {
 			System.out.println("Deferred sending message to " + k);
 			if (k > nodeNum)
@@ -129,12 +123,12 @@ public class RicartAgrawala {
 		}
 	}
 
-	public void requestTo(int seqNum, int nodeNum, int i) {
+	public void requestTo(int nodeNum, int i) {
 		System.out.println("Sending REQUEST to node " + (((i))));
 		if (i > nodeNum) {
-			w.get(i - 2).println("REQUEST," + seqNum + "," + nodeNum);
+			w.get(i - 2).println("REQUEST," + nodeNum);
 		} else {
-			w.get(i - 1).println("REQUEST," + seqNum + "," + nodeNum);
+			w.get(i - 1).println("REQUEST," + nodeNum);
 		}
 	}
 

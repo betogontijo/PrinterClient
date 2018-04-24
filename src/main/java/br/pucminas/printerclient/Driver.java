@@ -2,7 +2,6 @@ package br.pucminas.printerclient;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -49,7 +48,7 @@ public class Driver {
 		Radar radar = new Radar(port, port);
 		radar.start();
 		String localAddress = radar.getLocalAddress();
-		new Printer(9000).start();
+//		new Printer(9000).start();
 		List<Peer> ips = new ArrayList<Peer>(radar.getPeers());
 
 		while (true) {
@@ -98,10 +97,6 @@ public class Driver {
 			List<Socket> s = new ArrayList<Socket>();
 			outputStreams = new ArrayList<PrintWriter>();
 			inputStreams = new ArrayList<BufferedReader>();
-			// Clear the file
-			BufferedWriter clearWrite = new BufferedWriter(new FileWriter("CriticalSectionOutput.txt"));
-			clearWrite.write("\n");
-			clearWrite.close();
 
 			System.out.println("Node " + nodeNum + " here");
 			for (int i = 0; i < nodeNum - 1; i++) {
@@ -127,7 +122,7 @@ public class Driver {
 			}
 
 			// Create the ME object with priority of 'nodeNum' and initial sequence number 0
-			me = new RicartAgrawala(nodeNum, 0, ips.size(), this);
+			me = new RicartAgrawala(nodeNum, ips.size(), this);
 			me.w = outputStreams;
 
 			if (exec != null) {
@@ -149,7 +144,7 @@ public class Driver {
 	public static boolean criticalSection(int nodeNum) {
 		try {
 
-			criticalSection.write(nodeNum + " holds critical section access");
+			criticalSection.write(nodeNum + " holds critical section access\n");
 			criticalSection.flush(); // flush stream
 			Thread.sleep(1000);
 		} catch (Exception e) {
@@ -229,7 +224,7 @@ public class Driver {
 						 * We are receiving request(j,k) where j is a seq# and k a node#. This call will
 						 * decide to defer or ack with a reply.
 						 */
-						me.receiveRequest(Integer.parseInt(tokens[1]), Integer.parseInt(tokens[2]));
+						me.receiveRequest(Integer.parseInt(tokens[1]));
 					} else if (messageType.equals("REPLY")) {
 						/* Received a reply. We'll decrement our outstanding replies */
 						me.receiveReply();
