@@ -111,17 +111,22 @@ public class Driver {
 				while (x) {
 					try {
 						Socket socket = new Socket(ips.get(i).getIp(), j);
-						s.add(socket);
-						x = false;
+						x = socket.isConnected();
+						if (x) {
+							s.add(socket);
+						}
 					} catch (Exception e) {
 					}
 				}
 			}
 			for (int i = nodeNum - 1; i < ips.size(); i++) {
-				ss.add(new ServerSocket(initialPort++));
-			}
-			for (ServerSocket serverSocket : ss) {
-				s.add(serverSocket.accept());
+				try {
+					ServerSocket serverSocket = new ServerSocket(initialPort++);
+					serverSocket.setReuseAddress(true);
+					s.add(serverSocket.accept());
+				} catch (Exception e) {
+
+				}
 			}
 			System.out.println("Created all sockets");
 
