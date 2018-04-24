@@ -6,11 +6,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -96,10 +99,12 @@ public class Driver {
 		}
 	}
 
+	Map<Integer, ServerSocket> mapServerSocket = new HashMap<Integer, ServerSocket>();
+	// Map<String, Socket> mapSocket = new HashMap<String, Socket>();
+
 	private void initDriver(int initialPort, List<Peer> ips) {
 		// Set up our sockets with our peer nodes
 		try {
-			List<ServerSocket> ss = new ArrayList<ServerSocket>();
 			List<Socket> s = new ArrayList<Socket>();
 			outputStreams = new ArrayList<PrintWriter>();
 			inputStreams = new ArrayList<BufferedReader>();
@@ -107,13 +112,16 @@ public class Driver {
 			System.out.println("Node " + nodeNum + " here");
 			for (int i = 0; i < nodeNum - 1; i++) {
 				int j = initialPort++;
-				boolean x = true;
-				while (x) {
+				InetAddress ip = ips.get(i).getIp();
+				// Socket socket2 = mapSocket.get(ip.getHostAddress() + ":" + j);
+				boolean connected = false;
+				while (!connected) {
 					try {
-						Socket socket = new Socket(ips.get(i).getIp(), j);
-						x = socket.isConnected();
-						if (x) {
+						Socket socket = new Socket(ip, j);
+						connected = socket.isConnected();
+						if (connected) {
 							s.add(socket);
+							// mapSocket.put(ip + ":" + j, socket);
 						}
 					} catch (Exception e) {
 					}
@@ -121,9 +129,14 @@ public class Driver {
 			}
 			for (int i = nodeNum - 1; i < ips.size(); i++) {
 				try {
-					ServerSocket serverSocket = new ServerSocket(initialPort++);
-					serverSocket.setReuseAddress(true);
-					s.add(serverSocket.accept());
+					int j = initialPort++;
+					ServerSocket serverSocket2 = mapServerSocket.get(j);
+					if (serverSocket2 == null) {
+						serverSocket2 = new ServerSocket(initialPort++);
+						// serverSocket.setReuseAddress(true);
+						mapServerSocket.put(j, serverSocket2);
+					}
+					s.add(serverSocket2.accept());
 				} catch (Exception e) {
 
 				}
