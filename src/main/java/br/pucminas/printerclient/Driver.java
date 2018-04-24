@@ -107,11 +107,15 @@ public class Driver {
 			System.out.println("Node " + nodeNum + " here");
 			for (int i = 0; i < nodeNum - 1; i++) {
 				int j = initialPort++;
-				Socket socket = new Socket(ips.get(i).getIp(), j);
-				while (!socket.isConnected()) {
-					socket.connect(socket.getRemoteSocketAddress());
+				boolean x = true;
+				while (x) {
+					try {
+						Socket socket = new Socket(ips.get(i).getIp(), j);
+						s.add(socket);
+						x = false;
+					} catch (Exception e) {
+					}
 				}
-				s.add(socket);
 			}
 			for (int i = nodeNum - 1; i < ips.size(); i++) {
 				ss.add(new ServerSocket(initialPort++));
