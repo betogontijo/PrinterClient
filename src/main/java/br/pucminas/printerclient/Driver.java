@@ -132,7 +132,7 @@ public class Driver {
 					int j = initialPort++;
 					ServerSocket serverSocket2 = mapServerSocket.get(j);
 					if (serverSocket2 == null) {
-						serverSocket2 = new ServerSocket(initialPort++);
+						serverSocket2 = new ServerSocket(j);
 						// serverSocket.setReuseAddress(true);
 						mapServerSocket.put(j, serverSocket2);
 					}
