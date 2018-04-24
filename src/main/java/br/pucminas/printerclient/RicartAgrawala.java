@@ -50,19 +50,17 @@ public class RicartAgrawala {
 				requestTo(nodeNum, 1);
 			}
 		}
-
-		while (outstandingReplies > 0) {
+		int timeOut = 200;
+		while (outstandingReplies > 0 && timeOut-- > 0) {
 			try {
 				Thread.sleep(5);
-
 			} catch (Exception e) {
-
 			}
 			/* wait until we have replies from all other processes */
 		}
 
 		// We return when ready to enter CS
-		return true;
+		return timeOut != 0;
 
 	}
 
