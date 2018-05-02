@@ -1,6 +1,7 @@
 package br.pucminas.printerclient;
 
-import java.io.PrintWriter;
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,7 +13,7 @@ public class RicartAgrawala {
 	public Driver driverModule;
 
 	// Holds our writers to use
-	public List<PrintWriter> w;
+	public List<BufferedWriter> w;
 
 	// Hard coded to 3 right now, for 3 other nodes in network
 	public int channelCount;
@@ -27,7 +28,7 @@ public class RicartAgrawala {
 
 		this.driverModule = driverModule;
 
-		w = new ArrayList<PrintWriter>();
+		w = new ArrayList<BufferedWriter>();
 
 		// Node number is also used for priority (low node # == higher priority in
 		// RicartAgrawala scheme)
@@ -38,8 +39,9 @@ public class RicartAgrawala {
 		replyDeferred = new boolean[channelCount];
 	}
 
-	/** Invocation (begun in driver module with request CS) */
-	public boolean invocation() {
+	/** Invocation (begun in driver module with request CS) 
+	 * @throws IOException */
+	public boolean invocation() throws IOException {
 
 		bRequestingCS = true;
 
@@ -68,7 +70,7 @@ public class RicartAgrawala {
 	}
 
 	// The other half of invocation
-	public void releaseCS() {
+	public void releaseCS() throws IOException {
 		bRequestingCS = false;
 
 		for (int i = 0; i < channelCount; i++) {
@@ -89,9 +91,10 @@ public class RicartAgrawala {
 	 *            The incoming message's sequence number
 	 * @param k
 	 *            The incoming message's node number
+	 * @throws IOException 
 	 * 
 	 */
-	public void receiveRequest(int k) {
+	public void receiveRequest(int k) throws IOException {
 		System.out.println("Received request from node " + k);
 		boolean bDefer = false;
 
@@ -115,7 +118,7 @@ public class RicartAgrawala {
 		// System.out.println("Outstanding replies: " + outstandingReplies);
 	}
 
-	public void replyTo(int k) {
+	public void replyTo(int k) throws IOException {
 		System.out.println("Sending REPLY to node " + k);
 		if (k > nodeNum) {
 			w.get(k - 2).write("REPLY," + k + "\n");
@@ -126,7 +129,7 @@ public class RicartAgrawala {
 		}
 	}
 
-	public void requestTo(int nodeNum, int i) {
+	public void requestTo(int nodeNum, int i) throws IOException {
 		System.out.println("Sending REQUEST to node " + (((i))));
 		if (i > nodeNum) {
 			w.get(i - 2).write("REQUEST," + nodeNum + "\n");

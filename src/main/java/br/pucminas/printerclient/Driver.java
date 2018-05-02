@@ -5,7 +5,6 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -22,7 +21,7 @@ import br.pucminas.printerclient.PeerDiscovery.Peer;
 
 public class Driver {
 	// For convenience in accessing channels; will contain our writers above
-	ArrayList<PrintWriter> outputStreams;
+	ArrayList<BufferedWriter> outputStreams;
 
 	// Readers that will be passed to a separate thread of execution each
 	List<BufferedReader> inputStreams;
@@ -103,7 +102,7 @@ public class Driver {
 	private void initDriver(int initialPort, List<Peer> ips) {
 		// Set up our sockets with our peer nodes
 		try {
-			outputStreams = new ArrayList<PrintWriter>();
+			outputStreams = new ArrayList<BufferedWriter>();
 			inputStreams = new ArrayList<BufferedReader>();
 
 			// Create the ME object with priority of 'nodeNum' and initial sequence number 0
@@ -153,8 +152,9 @@ public class Driver {
 
 	/**
 	 * Interface method between Driver and RicartAgrawala
+	 * @throws IOException 
 	 */
-	public void requestCS() {
+	public void requestCS() throws IOException {
 
 		if (me.invocation()) {
 
@@ -173,8 +173,8 @@ public class Driver {
 	public void broadcast(String message) {
 		for (int i = 0; i < outputStreams.size(); i++) {
 			try {
-				PrintWriter writer = outputStreams.get(i);
-				writer.println(message);
+				BufferedWriter writer = outputStreams.get(i);
+				writer.write(message);
 				writer.flush();
 			} catch (Exception ex) {
 				ex.printStackTrace();
@@ -211,7 +211,7 @@ public class Driver {
 				}
 				InputStreamReader iReader = new InputStreamReader(sock.getInputStream());
 				reader = new BufferedReader(iReader);
-				outputStreams.add(new PrintWriter(sock.getOutputStream(), true));
+				outputStreams.add(new BufferedWriter(new OutputStreamWriter(sock.getOutputStream())));
 
 			} catch (Exception ex) {
 				ex.printStackTrace();
