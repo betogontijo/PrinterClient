@@ -51,8 +51,8 @@ public class RicartAgrawala {
 					requestTo(nodeNum, i);
 				}
 			}
-			int timeOut = 200;
-			while (outstandingReplies > 0 && --timeOut > 0) {
+			// int timeOut = 200;
+			while (outstandingReplies > 0) {
 				try {
 					Thread.sleep(5);
 				} catch (Exception e) {
@@ -61,7 +61,7 @@ public class RicartAgrawala {
 			}
 
 			// We return when ready to enter CS
-			return timeOut != 0;
+			return true;
 		} else {
 			return false;
 		}
