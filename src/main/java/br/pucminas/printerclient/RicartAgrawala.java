@@ -45,9 +45,9 @@ public class RicartAgrawala {
 
 		outstandingReplies = channelCount;
 
-		for (int i = 1; i <= channelCount + 1; i++) {
+		for (int i = 1; i <= w.size() + 1; i++) {
 			if (i != nodeNum) {
-				requestTo(nodeNum, 1);
+				requestTo(nodeNum, i);
 			}
 		}
 		int timeOut = 200;
