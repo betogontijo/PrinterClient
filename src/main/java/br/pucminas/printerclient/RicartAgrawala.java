@@ -45,23 +45,26 @@ public class RicartAgrawala {
 
 		outstandingReplies = channelCount;
 
-		for (int i = 1; i <= w.size() + 1; i++) {
-			if (i != nodeNum) {
-				requestTo(nodeNum, i);
+		if (w.isEmpty()) {
+			for (int i = 1; i <= w.size() + 1; i++) {
+				if (i != nodeNum) {
+					requestTo(nodeNum, i);
+				}
 			}
-		}
-		int timeOut = 200;
-		while (outstandingReplies > 0 && timeOut-- > 0) {
-			try {
-				Thread.sleep(5);
-			} catch (Exception e) {
+			int timeOut = 200;
+			while (outstandingReplies > 0 && --timeOut > 0) {
+				try {
+					Thread.sleep(5);
+				} catch (Exception e) {
+				}
+				/* wait until we have replies from all other processes */
 			}
-			/* wait until we have replies from all other processes */
+
+			// We return when ready to enter CS
+			return timeOut != 0;
+		} else {
+			return false;
 		}
-
-		// We return when ready to enter CS
-		return timeOut != 0;
-
 	}
 
 	// The other half of invocation
@@ -116,8 +119,10 @@ public class RicartAgrawala {
 		System.out.println("Sending REPLY to node " + k);
 		if (k > nodeNum) {
 			w.get(k - 2).println("REPLY," + k);
+			w.get(k - 2).flush();
 		} else {
 			w.get(k - 1).println("REPLY," + k);
+			w.get(k - 1).flush();
 		}
 	}
 
@@ -125,8 +130,10 @@ public class RicartAgrawala {
 		System.out.println("Sending REQUEST to node " + (((i))));
 		if (i > nodeNum) {
 			w.get(i - 2).println("REQUEST," + nodeNum);
+			w.get(i - 2).flush();
 		} else {
 			w.get(i - 1).println("REQUEST," + nodeNum);
+			w.get(i - 1).flush();
 		}
 	}
 
