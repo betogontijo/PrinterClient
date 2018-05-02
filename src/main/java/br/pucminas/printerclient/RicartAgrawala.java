@@ -1,7 +1,6 @@
 package br.pucminas.printerclient;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,7 +12,7 @@ public class RicartAgrawala {
 	public Driver driverModule;
 
 	// Holds our writers to use
-	public List<BufferedWriter> w;
+	public List<PrintWriter> w;
 
 	// Hard coded to 3 right now, for 3 other nodes in network
 	public int channelCount;
@@ -28,7 +27,7 @@ public class RicartAgrawala {
 
 		this.driverModule = driverModule;
 
-		w = new ArrayList<BufferedWriter>();
+		w = new ArrayList<PrintWriter>();
 
 		// Node number is also used for priority (low node # == higher priority in
 		// RicartAgrawala scheme)
@@ -39,9 +38,8 @@ public class RicartAgrawala {
 		replyDeferred = new boolean[channelCount];
 	}
 
-	/** Invocation (begun in driver module with request CS) 
-	 * @throws IOException */
-	public boolean invocation() throws IOException {
+	/** Invocation (begun in driver module with request CS) */
+	public boolean invocation() {
 
 		bRequestingCS = true;
 
@@ -70,7 +68,7 @@ public class RicartAgrawala {
 	}
 
 	// The other half of invocation
-	public void releaseCS() throws IOException {
+	public void releaseCS() {
 		bRequestingCS = false;
 
 		for (int i = 0; i < channelCount; i++) {
@@ -91,10 +89,9 @@ public class RicartAgrawala {
 	 *            The incoming message's sequence number
 	 * @param k
 	 *            The incoming message's node number
-	 * @throws IOException 
 	 * 
 	 */
-	public void receiveRequest(int k) throws IOException {
+	public void receiveRequest(int k) {
 		System.out.println("Received request from node " + k);
 		boolean bDefer = false;
 
@@ -118,24 +115,24 @@ public class RicartAgrawala {
 		// System.out.println("Outstanding replies: " + outstandingReplies);
 	}
 
-	public void replyTo(int k) throws IOException {
+	public void replyTo(int k) {
 		System.out.println("Sending REPLY to node " + k);
 		if (k > nodeNum) {
-			w.get(k - 2).write("REPLY," + k + "\n");
+			w.get(k - 2).println("REPLY," + k);
 			w.get(k - 2).flush();
 		} else {
-			w.get(k - 1).write("REPLY," + k + "\n");
+			w.get(k - 1).println("REPLY," + k);
 			w.get(k - 1).flush();
 		}
 	}
 
-	public void requestTo(int nodeNum, int i) throws IOException {
+	public void requestTo(int nodeNum, int i) {
 		System.out.println("Sending REQUEST to node " + (((i))));
 		if (i > nodeNum) {
-			w.get(i - 2).write("REQUEST," + nodeNum + "\n");
+			w.get(i - 2).println("REQUEST," + nodeNum);
 			w.get(i - 2).flush();
 		} else {
-			w.get(i - 1).write("REQUEST," + nodeNum + "\n");
+			w.get(i - 1).println("REQUEST," + nodeNum);
 			w.get(i - 1).flush();
 		}
 	}

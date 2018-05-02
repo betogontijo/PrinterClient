@@ -5,6 +5,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -21,7 +22,7 @@ import br.pucminas.printerclient.PeerDiscovery.Peer;
 
 public class Driver {
 	// For convenience in accessing channels; will contain our writers above
-	ArrayList<BufferedWriter> outputStreams;
+	ArrayList<PrintWriter> outputStreams;
 
 	// Readers that will be passed to a separate thread of execution each
 	List<BufferedReader> inputStreams;
@@ -102,11 +103,12 @@ public class Driver {
 	private void initDriver(int initialPort, List<Peer> ips) {
 		// Set up our sockets with our peer nodes
 		try {
-			outputStreams = new ArrayList<BufferedWriter>();
+			outputStreams = new ArrayList<PrintWriter>();
 			inputStreams = new ArrayList<BufferedReader>();
 
 			// Create the ME object with priority of 'nodeNum' and initial sequence number 0
 			me = new RicartAgrawala(nodeNum, ips.size(), this);
+			me.w = outputStreams;
 
 			if (exec != null) {
 				exec.shutdownNow();
@@ -123,14 +125,12 @@ public class Driver {
 				ServerSocket serverSocket2 = mapServerSocket.get(initialPort + nodeNum - 1);
 				if (serverSocket2 == null) {
 					serverSocket2 = new ServerSocket(initialPort + nodeNum - 1);
-					// serverSocket2.setReuseAddress(true);
+					serverSocket2.setReuseAddress(true);
 					mapServerSocket.put(initialPort + nodeNum, serverSocket2);
 				}
 				for (int i = 0; i < ips.size(); i++) {
-					outputStreams
-							.add(new BufferedWriter(new OutputStreamWriter(serverSocket2.accept().getOutputStream())));
+					outputStreams.add(new PrintWriter(serverSocket2.accept().getOutputStream(), true));
 				}
-				me.w = outputStreams;
 			} catch (Exception e) {
 			}
 		} catch (Exception ex) {
@@ -153,10 +153,8 @@ public class Driver {
 
 	/**
 	 * Interface method between Driver and RicartAgrawala
-	 * 
-	 * @throws IOException
 	 */
-	public void requestCS() throws IOException {
+	public void requestCS() {
 
 		if (me.invocation()) {
 
@@ -175,8 +173,8 @@ public class Driver {
 	public void broadcast(String message) {
 		for (int i = 0; i < outputStreams.size(); i++) {
 			try {
-				BufferedWriter writer = outputStreams.get(i);
-				writer.write(message);
+				PrintWriter writer = outputStreams.get(i);
+				writer.println(message);
 				writer.flush();
 			} catch (Exception ex) {
 				ex.printStackTrace();
