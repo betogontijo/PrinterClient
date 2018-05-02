@@ -42,19 +42,20 @@ public class RicartAgrawala {
 	public boolean invocation() {
 
 		bRequestingCS = true;
-
+		
 		outstandingReplies = channelCount;
 
-		if (!w.isEmpty()) {
+		if (w.size() == channelCount) {
 			for (int i = 1; i <= w.size() + 1; i++) {
 				if (i != nodeNum) {
 					requestTo(nodeNum, i);
 				}
 			}
-			// int timeOut = 200;
+//			int timeOut = 400;
+			System.out.println("Waiting reply");
 			while (outstandingReplies > 0) {
 				try {
-					Thread.sleep(5);
+					Thread.sleep(50);
 				} catch (Exception e) {
 				}
 				/* wait until we have replies from all other processes */
@@ -103,7 +104,6 @@ public class RicartAgrawala {
 			else
 				replyDeferred[k - 1] = true;
 		} else {
-			System.out.println("Sent reply message to " + k);
 			replyTo(k);
 		}
 
@@ -116,24 +116,18 @@ public class RicartAgrawala {
 	}
 
 	public void replyTo(int k) {
-		System.out.println("Sending REPLY to node " + k);
 		if (k > nodeNum) {
 			w.get(k - 2).println("REPLY," + k);
-			w.get(k - 2).flush();
 		} else {
 			w.get(k - 1).println("REPLY," + k);
-			w.get(k - 1).flush();
 		}
 	}
 
 	public void requestTo(int nodeNum, int i) {
-		System.out.println("Sending REQUEST to node " + (((i))));
 		if (i > nodeNum) {
 			w.get(i - 2).println("REQUEST," + nodeNum);
-			w.get(i - 2).flush();
 		} else {
 			w.get(i - 1).println("REQUEST," + nodeNum);
-			w.get(i - 1).flush();
 		}
 	}
 

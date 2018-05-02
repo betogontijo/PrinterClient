@@ -116,8 +116,12 @@ public class Driver {
 
 			exec = Executors.newFixedThreadPool(ips.size());
 			for (int i = 0; i < ips.size(); i++) {
-				exec.execute(new ChannelHandler(ips.get(i).getIp(),
-						i < nodeNum - 1 ? initialPort + i : initialPort + i + 1));
+				ChannelHandler channelHandler = new ChannelHandler(ips.get(i).getIp(),
+						i < nodeNum - 1 ? initialPort + i : initialPort + i + 1);
+				exec.execute(channelHandler);
+				while(!channelHandler.ready) {
+					Thread.sleep(5);
+				}
 			}
 
 			try {
@@ -189,6 +193,7 @@ public class Driver {
 	class ChannelHandler implements Runnable {
 		InetAddress ip;
 		int port;
+		boolean ready = false;
 
 		public ChannelHandler(InetAddress ip, int port) {
 			this.ip = ip;
@@ -221,6 +226,7 @@ public class Driver {
 			try {
 				// As long as this reader is open, will take action the moment a message
 				// arrives.
+				ready = true;
 				while ((message = reader.readLine()) != null) {
 					System.out.println(message);
 
