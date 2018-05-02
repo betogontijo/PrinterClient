@@ -80,6 +80,7 @@ public class Driver {
 								new OutputStreamWriter(new Socket(cluster.get(0), 9000).getOutputStream()));
 						this.nodeNum = cluster.indexOf(localAddress) + 1;
 						initDriver(port + 1, ips);
+						Thread.sleep(1000);
 					}
 				}
 				if (!ips.isEmpty()) {
@@ -116,12 +117,8 @@ public class Driver {
 
 			exec = Executors.newFixedThreadPool(ips.size());
 			for (int i = 0; i < ips.size(); i++) {
-				ChannelHandler channelHandler = new ChannelHandler(ips.get(i).getIp(),
-						i < nodeNum - 1 ? initialPort + i : initialPort + i + 1);
-				exec.execute(channelHandler);
-				while(!channelHandler.ready) {
-					Thread.sleep(5);
-				}
+				exec.execute(new ChannelHandler(ips.get(i).getIp(),
+						i < nodeNum - 1 ? initialPort + i : initialPort + i + 1));
 			}
 
 			try {
@@ -193,7 +190,6 @@ public class Driver {
 	class ChannelHandler implements Runnable {
 		InetAddress ip;
 		int port;
-		boolean ready = false;
 
 		public ChannelHandler(InetAddress ip, int port) {
 			this.ip = ip;
@@ -226,7 +222,6 @@ public class Driver {
 			try {
 				// As long as this reader is open, will take action the moment a message
 				// arrives.
-				ready = true;
 				while ((message = reader.readLine()) != null) {
 					System.out.println(message);
 
