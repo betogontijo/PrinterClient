@@ -45,7 +45,7 @@ public class RicartAgrawala {
 
 		outstandingReplies = channelCount;
 
-		if (w.isEmpty()) {
+		if (!w.isEmpty()) {
 			for (int i = 1; i <= w.size() + 1; i++) {
 				if (i != nodeNum) {
 					requestTo(nodeNum, i);
@@ -118,10 +118,10 @@ public class RicartAgrawala {
 	public void replyTo(int k) {
 		System.out.println("Sending REPLY to node " + k);
 		if (k > nodeNum) {
-			w.get(k - 2).println("REPLY," + k);
+			w.get(k - 2).write("REPLY," + k + "\n");
 			w.get(k - 2).flush();
 		} else {
-			w.get(k - 1).println("REPLY," + k);
+			w.get(k - 1).write("REPLY," + k + "\n");
 			w.get(k - 1).flush();
 		}
 	}
@@ -129,10 +129,10 @@ public class RicartAgrawala {
 	public void requestTo(int nodeNum, int i) {
 		System.out.println("Sending REQUEST to node " + (((i))));
 		if (i > nodeNum) {
-			w.get(i - 2).println("REQUEST," + nodeNum);
+			w.get(i - 2).write("REQUEST," + nodeNum + "\n");
 			w.get(i - 2).flush();
 		} else {
-			w.get(i - 1).println("REQUEST," + nodeNum);
+			w.get(i - 1).write("REQUEST," + nodeNum + "\n");
 			w.get(i - 1).flush();
 		}
 	}

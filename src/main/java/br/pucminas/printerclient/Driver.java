@@ -156,13 +156,14 @@ public class Driver {
 	 */
 	public void requestCS() {
 
-		me.invocation();
+		if (me.invocation()) {
 
-		// After invocation returns, we can safely call CS
-		criticalSection(nodeNum);
+			// After invocation returns, we can safely call CS
+			criticalSection(nodeNum);
 
-		// Once we are done with CS, release CS
-		me.releaseCS();
+			// Once we are done with CS, release CS
+			me.releaseCS();
+		}
 	}
 
 	/**
