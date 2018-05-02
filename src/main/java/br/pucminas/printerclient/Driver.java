@@ -107,7 +107,6 @@ public class Driver {
 
 			// Create the ME object with priority of 'nodeNum' and initial sequence number 0
 			me = new RicartAgrawala(nodeNum, ips.size(), this);
-			me.w = outputStreams;
 
 			if (exec != null) {
 				exec.shutdownNow();
@@ -124,12 +123,14 @@ public class Driver {
 				ServerSocket serverSocket2 = mapServerSocket.get(initialPort + nodeNum - 1);
 				if (serverSocket2 == null) {
 					serverSocket2 = new ServerSocket(initialPort + nodeNum - 1);
-					serverSocket2.setReuseAddress(true);
+					// serverSocket2.setReuseAddress(true);
 					mapServerSocket.put(initialPort + nodeNum, serverSocket2);
 				}
 				for (int i = 0; i < ips.size(); i++) {
-					serverSocket2.accept();
+					outputStreams
+							.add(new BufferedWriter(new OutputStreamWriter(serverSocket2.accept().getOutputStream())));
 				}
+				me.w = outputStreams;
 			} catch (Exception e) {
 			}
 		} catch (Exception ex) {
@@ -152,7 +153,8 @@ public class Driver {
 
 	/**
 	 * Interface method between Driver and RicartAgrawala
-	 * @throws IOException 
+	 * 
+	 * @throws IOException
 	 */
 	public void requestCS() throws IOException {
 
@@ -211,7 +213,6 @@ public class Driver {
 				}
 				InputStreamReader iReader = new InputStreamReader(sock.getInputStream());
 				reader = new BufferedReader(iReader);
-				outputStreams.add(new BufferedWriter(new OutputStreamWriter(sock.getOutputStream())));
 
 			} catch (Exception ex) {
 				ex.printStackTrace();
