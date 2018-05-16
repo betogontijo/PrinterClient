@@ -109,7 +109,7 @@ public class Driver {
 			inputStreams = new ArrayList<BufferedReader>();
 
 			System.out.println("Node " + nodeNum + " here");
-			for (int i = 0; i < ips.size() + 1; i++) {
+			for (int i = 0; i < ips.size(); i++) {
 				int j = initialPort++;
 				if (nodeNum - 1 != i) {
 					String ip = ips.get(i > nodeNum - 1 ? i - 1 : i);
@@ -117,6 +117,7 @@ public class Driver {
 					boolean connected = false;
 					while (!connected) {
 						try {
+							System.out.println("Connecting to server " + ip + ":" + j);
 							Socket socket = new Socket(ip, j);
 							connected = socket.isConnected();
 							if (connected) {
@@ -134,6 +135,7 @@ public class Driver {
 						mapServerSocket.put(j, serverSocket2);
 					}
 					for (int k = 0; k < ips.size() - 1; k++) {
+						System.out.println("Accepting at:" + j);
 						s.add(serverSocket2.accept());
 					}
 				}
