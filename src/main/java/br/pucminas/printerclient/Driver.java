@@ -112,7 +112,7 @@ public class Driver {
 			for (int i = 0; i < ips.size(); i++) {
 				int j = initialPort++;
 				if (nodeNum - 1 != i) {
-					String ip = ips.get(i > nodeNum - 1 ? i - 1 : i);
+					String ip = ips.get(i > nodeNum ? i - 1 : i);
 					// Socket socket2 = mapSocket.get(ip.getHostAddress() + ":" + j);
 					boolean connected = false;
 					while (!connected) {
@@ -135,8 +135,9 @@ public class Driver {
 						mapServerSocket.put(j, serverSocket2);
 					}
 					for (int k = 0; k < ips.size() - 1; k++) {
-						System.out.println("Accepting at:" + j);
+						System.out.println("Accepting at: " + j);
 						s.add(serverSocket2.accept());
+						System.out.println("Accepted");
 					}
 				}
 			}
