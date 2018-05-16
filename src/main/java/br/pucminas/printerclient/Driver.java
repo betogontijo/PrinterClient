@@ -134,7 +134,7 @@ public class Driver {
 						// serverSocket.setReuseAddress(true);
 						mapServerSocket.put(j, serverSocket2);
 					}
-					for (int k = 0; k < ips.size() - 1; k++) {
+					for (int k = 0; k < ips.size(); k++) {
 						s.add(serverSocket2.accept());
 					}
 				}
