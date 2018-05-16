@@ -80,14 +80,15 @@ public class Driver {
 								new OutputStreamWriter(new Socket(cluster.get(0), 9000).getOutputStream()));
 						this.nodeNum = cluster.indexOf(localAddress) + 1;
 						initDriver(port + 1, ips);
-						Thread.sleep(1000);
 					}
 				}
 				if (!ips.isEmpty()) {
-					if (new Random().nextDouble() > 0.5) {
-						System.out.println("Requesting critical section...");
-						requestCS();
-					}
+					System.out.println("Requesting critical section...");
+					requestCS();
+					// numberOfWrites++;
+					Random num = new Random();
+					Thread.sleep(num.nextInt(500));
+					// Thread.sleep(csDelay);
 				} else {
 					System.out.print("Waiting for connection...\r");
 				}
@@ -104,8 +105,47 @@ public class Driver {
 	private void initDriver(int initialPort, List<Peer> ips) {
 		// Set up our sockets with our peer nodes
 		try {
+			List<Socket> s = new ArrayList<Socket>();
 			outputStreams = new ArrayList<PrintWriter>();
 			inputStreams = new ArrayList<BufferedReader>();
+
+			System.out.println("Node " + nodeNum + " here");
+			for (int i = 0; i < ips.size(); i++) {
+				int j = initialPort++;
+				if (nodeNum - 1 != i) {
+					InetAddress ip = ips.get(i).getIp();
+					// Socket socket2 = mapSocket.get(ip.getHostAddress() + ":" + j);
+					boolean connected = false;
+					while (!connected) {
+						try {
+							Socket socket = new Socket(ip, j);
+							connected = socket.isConnected();
+							if (connected) {
+								s.add(socket);
+								// mapSocket.put(ip + ":" + j, socket);
+							}
+						} catch (Exception e) {
+						}
+					}
+				} else {
+					ServerSocket serverSocket2 = mapServerSocket.get(j);
+					if (serverSocket2 == null) {
+						serverSocket2 = new ServerSocket(j);
+						// serverSocket.setReuseAddress(true);
+						mapServerSocket.put(j, serverSocket2);
+					}
+					for (int k = 0; k < ips.size() - 1; k++) {
+						s.add(serverSocket2.accept());
+					}
+				}
+			}
+			System.out.println("Created all sockets");
+
+			// With the sockets done, create our readers and writers
+			for (Socket socket : s) {
+				outputStreams.add(new PrintWriter(socket.getOutputStream(), true));
+				inputStreams.add(new BufferedReader(new InputStreamReader(socket.getInputStream())));
+			}
 
 			// Create the ME object with priority of 'nodeNum' and initial sequence number 0
 			me = new RicartAgrawala(nodeNum, ips.size(), this);
@@ -115,25 +155,12 @@ public class Driver {
 				exec.shutdownNow();
 			}
 
-			exec = Executors.newFixedThreadPool(ips.size());
-			for (int i = 0; i < ips.size(); i++) {
-				exec.execute(new ChannelHandler(ips.get(i).getIp(),
-						i < nodeNum - 1 ? initialPort + i : initialPort + i + 1));
+			exec = Executors.newFixedThreadPool(s.size());
+			for (int j = 0; j < s.size(); j++) {
+				Socket socket3 = s.get(j);
+				exec.execute(new ChannelHandler(socket3));
 			}
 
-			try {
-				System.out.println("Node " + nodeNum + " here");
-				ServerSocket serverSocket2 = mapServerSocket.get(initialPort + nodeNum - 1);
-				if (serverSocket2 == null) {
-					serverSocket2 = new ServerSocket(initialPort + nodeNum - 1);
-					serverSocket2.setReuseAddress(true);
-					mapServerSocket.put(initialPort + nodeNum, serverSocket2);
-				}
-				for (int i = 0; i < ips.size(); i++) {
-					outputStreams.add(new PrintWriter(serverSocket2.accept().getOutputStream(), true));
-				}
-			} catch (Exception e) {
-			}
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
@@ -157,14 +184,13 @@ public class Driver {
 	 */
 	public void requestCS() {
 
-		if (me.invocation()) {
+		me.invocation();
 
-			// After invocation returns, we can safely call CS
-			criticalSection(nodeNum);
+		// After invocation returns, we can safely call CS
+		criticalSection(nodeNum);
 
-			// Once we are done with CS, release CS
-			me.releaseCS();
-		}
+		// Once we are done with CS, release CS
+		me.releaseCS();
 	}
 
 	/**
@@ -188,35 +214,24 @@ public class Driver {
 	 * information to the ME object.
 	 */
 	class ChannelHandler implements Runnable {
-		InetAddress ip;
-		int port;
+		BufferedReader reader;
+		PrintWriter writer;
+		Socket sock;
 
-		public ChannelHandler(InetAddress ip, int port) {
-			this.ip = ip;
-			this.port = port;
-		}
-
-		/** Continuously runs and reads all incoming messages, passing messages to ME */
-
-		public void run() {
-			BufferedReader reader = null;
-			Socket sock = null;
+		public ChannelHandler(Socket s) {
 			try {
-				boolean connected = false;
-				while (!connected) {
-					try {
-						sock = new Socket(ip, port);
-						connected = sock.isConnected();
-					} catch (Exception e) {
-					}
-				}
+				sock = s;
 				InputStreamReader iReader = new InputStreamReader(sock.getInputStream());
 				reader = new BufferedReader(iReader);
 
 			} catch (Exception ex) {
 				ex.printStackTrace();
 			}
+		}
 
+		/** Continuously runs and reads all incoming messages, passing messages to ME */
+
+		public void run() {
 			String message;
 
 			try {
