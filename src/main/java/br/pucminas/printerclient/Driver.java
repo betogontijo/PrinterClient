@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -79,7 +78,7 @@ public class Driver {
 						criticalSection = new BufferedWriter(
 								new OutputStreamWriter(new Socket(cluster.get(0), 9000).getOutputStream()));
 						this.nodeNum = cluster.indexOf(localAddress) + 1;
-						initDriver(port + 1, ips);
+						initDriver(port + 1, cluster);
 					}
 				}
 				if (!ips.isEmpty()) {
@@ -102,7 +101,7 @@ public class Driver {
 	Map<Integer, ServerSocket> mapServerSocket = new HashMap<Integer, ServerSocket>();
 	// Map<String, Socket> mapSocket = new HashMap<String, Socket>();
 
-	private void initDriver(int initialPort, List<Peer> ips) {
+	private void initDriver(int initialPort, List<String> ips) {
 		// Set up our sockets with our peer nodes
 		try {
 			List<Socket> s = new ArrayList<Socket>();
@@ -113,7 +112,7 @@ public class Driver {
 			for (int i = 0; i < ips.size() + 1; i++) {
 				int j = initialPort++;
 				if (nodeNum - 1 != i) {
-					InetAddress ip = ips.get(i > nodeNum - 1 ? i - 1 : i).getIp();
+					String ip = ips.get(i > nodeNum - 1 ? i - 1 : i);
 					// Socket socket2 = mapSocket.get(ip.getHostAddress() + ":" + j);
 					boolean connected = false;
 					while (!connected) {
