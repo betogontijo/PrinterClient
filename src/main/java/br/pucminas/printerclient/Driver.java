@@ -110,10 +110,10 @@ public class Driver {
 			inputStreams = new ArrayList<BufferedReader>();
 
 			System.out.println("Node " + nodeNum + " here");
-			for (int i = 0; i < ips.size(); i++) {
+			for (int i = 0; i < ips.size() + 1; i++) {
 				int j = initialPort++;
 				if (nodeNum - 1 != i) {
-					InetAddress ip = ips.get(i).getIp();
+					InetAddress ip = ips.get(i > nodeNum - 1 ? i - 1 : i).getIp();
 					// Socket socket2 = mapSocket.get(ip.getHostAddress() + ":" + j);
 					boolean connected = false;
 					while (!connected) {
